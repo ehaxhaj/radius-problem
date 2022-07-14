@@ -1,0 +1,190 @@
+<style>
+  * {
+    margin: 0;
+  }
+  #div_move {
+    border: 1px solid black;
+    height: 100px;
+    width: 100px;
+    background: red;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    font-size: 7px;
+  }
+  #div_position {
+    background: blue;
+    width: 10px;
+    height: 10px;
+  }
+  #div_drag {
+    background: green;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+  }
+
+  #div_resize {
+    background: yellow;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+  }
+</style>
+<div id="div_move">
+  <div id="div_position">P</div>
+  <div id="div_drag">D</div>
+  <div id="div_resize">R</div>
+</div>
+
+<div>X : <span id="div_x"></span></div>
+<div>Y : <span id="div_y"></span></div>
+
+<div>Mouse Down Click : <span id="div_md_c"></span></div>
+
+<div>Mouse Down X : <span id="div_md_x"></span></div>
+<div>Mouse Down Y : <span id="div_md_y"></span></div>
+
+<div>Mouse Up X : <span id="div_mu_x"></span></div>
+<div>Mouse Up Y : <span id="div_mu_y"></span></div>
+
+<div>Mouse Move X : <span id="div_mm_x"></span></div>
+<div>Mouse Move Y : <span id="div_mm_y"></span></div>
+
+<div>Angle : <span id="div_angle"></span></div>
+<div>Degree Fixed : <span id="div_degree_fixed"></span></div>
+
+<script>
+  var div_x = document.getElementById("div_x");
+  var div_y = document.getElementById("div_y");
+  var div_md_x = document.getElementById("div_md_x");
+  var div_md_y = document.getElementById("div_md_y");
+  var div_mu_x = document.getElementById("div_mu_x");
+  var div_mu_y = document.getElementById("div_mu_y");
+  var div_mm_x = document.getElementById("div_mm_x");
+  var div_mm_y = document.getElementById("div_mm_y");
+  var div_obj = document.getElementById("div_position");
+  var div_move = document.getElementById("div_move");
+  var div_drag = document.getElementById("div_drag");
+  var div_resize = document.getElementById("div_resize");
+  var div_degree_fixed = document.getElementById("div_degree_fixed");
+
+  let div_move_width = 100;
+  let div_height = 10;
+  let div_width = 10;
+
+  let angle = 0;
+
+  div_move.onclick = function (e) {
+    console.log(e);
+    infoDiv();
+  };
+
+  let mouse_down_blue = false;
+  let mouse_down_green = false;
+  let mouse_down_yellow = false;
+  let degree_fixed = 0;
+  let resize_move_position = 0;
+
+  document.onmousemove = function (e) {
+    infoDiv();
+    div_md_c.textContent = mouse_down_blue;
+    div_mm_x.textContent = e.clientX;
+    div_mm_y.textContent = e.clientY;
+    if (mouse_down_blue) {
+      div_mu_x.textContent = e.clientX;
+      div_mu_y.textContent = e.clientY;
+
+      div_move.style.left = e.clientX - div_height / 2;
+      div_move.style.top = e.clientY - div_width / 2;
+    }
+    if (mouse_down_green) {
+      const arrowCenter = getCenter(div_move);
+      angle = Math.atan2(e.clientY - arrowCenter.y, e.clientX - arrowCenter.x);
+      var degree = angle * (180 / Math.PI) * -1 + 45;
+      div_angle.textContent = degree;
+      degree_fixed = degree;
+      div_move.style.transform = `rotate(-${degree}deg)`;
+    }
+    if (mouse_down_yellow) {
+      let rect = div_obj.getBoundingClientRect();
+      let div_width = div_move.offsetWidth - 5;
+      if (degree_fixed < 45) {
+        let diff = e.clientX - rect.left + div_width;
+        resize_move_position = diff;
+        console.log(" < 45", div_width, rect.left, e.clientX, diff);
+      } else if (degree_fixed > 45 && degree_fixed < 90) {
+        let diff = rect.top - e.clientY;
+        resize_move_position = diff;
+        console.log(" > 45 ", div_width, rect.top, e.clientY, diff);
+      } else if (degree_fixed > 90 && degree_fixed < 135) {
+        let diff = rect.left + div_width - e.clientY;
+        resize_move_position = diff;
+        console.log(" > 90, < 135 ", div_width, rect.left, e.clientY, diff);
+      } else if (degree_fixed > 135) {
+        let diff = rect.right - e.clientX - div_width;
+        resize_move_position = diff;
+        console.log(" > 90 ", div_width, rect.right, e.clientY, diff);
+      }
+    }
+  };
+
+  document.onmouseup = function (e) {
+    console.log("Mouse Up");
+    div_mu_x.textContent = e.clientX;
+    div_mu_y.textContent = e.clientY;
+    mouse_down_blue = false;
+    mouse_down_green = false;
+    if (mouse_down_yellow) {
+      div_move_width = div_move_width + resize_move_position;
+      div_move.style.width = div_move_width;
+      let rect = div_obj.getBoundingClientRect();
+      if (degree_fixed > 135) {
+        let current_left = rect.left;
+        div_move.style.left =
+          Number(current_left) - resize_move_position / 2 - div_move_width;
+        console.log(
+          degree_fixed,
+          div_move.style.left,
+          current_left,
+          resize_move_position / 2
+        );
+      }
+      div_md_c.textContent = mouse_down_blue;
+      div_degree_fixed.textContent = degree_fixed;
+    }
+    mouse_down_yellow = false;
+    infoDiv();
+  };
+
+  div_obj.onmousedown = function (e) {
+    console.log("Mouse Down", e);
+    mouse_down_blue = true;
+    div_md_x.textContent = e.clientX;
+    div_md_y.textContent = e.clientY;
+    div_md_c.textContent = mouse_down_blue;
+  };
+
+  div_drag.onmousedown = function (e) {
+    mouse_down_green = true;
+  };
+
+  div_resize.onmousedown = function (e) {
+    mouse_down_yellow = true;
+  };
+
+  function getCenter(element) {
+    const { left, top, width, height } = element.getBoundingClientRect();
+    return { x: left + width / 2, y: top + height / 2 };
+  }
+
+  function infoDiv(e) {
+    let div_rect = div_obj.getBoundingClientRect();
+    div_x.textContent = div_rect.top;
+    div_y.textContent = div_rect.left;
+  }
+</script>
